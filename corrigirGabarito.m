@@ -24,7 +24,9 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
     NA = 4;              % alternativas por questao
     LETRAS = 'ABCD';
 
-    LIMIAR      = 0.40;  % fracao minima de tinta para considerar marcada
+    % Dois limiares, nao um. Sao perguntas diferentes:
+    LIMIAR_MARCA  = 0.40;  % "isto e uma alternativa marcada" -> define a letra
+    LIMIAR_RASURA = 0.20;  % "aqui tem alguma tinta"          -> detecta rasura
     RECORTE     = 0.25;  % quanto encolher cada celula (tira o contorno preto)
     MARGEM      = 8;     % pixels descartados pra dentro da moldura verde
     FATOR_TINTA = 0.70;  % pixel e tinta se estiver abaixo de 70% do fundo
@@ -107,14 +109,19 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
     respostas = repmat('-', 1, NQ);
 
     for i = 1:NQ
-        marcadas = find(preenchimento(i,:) > LIMIAR);
+        linha    = preenchimento(i,:);
+        comTinta = find(linha > LIMIAR_RASURA);   % qualquer intervencao
+        marcadas = find(linha > LIMIAR_MARCA);    % marcacao de verdade
 
-        if isempty(marcadas)
-            respostas(i) = '-';      % em branco (ou marcacao fraca demais)
-        elseif numel(marcadas) > 1
-            respostas(i) = '*';      % dupla marcacao: anula
-        else
+        if numel(comTinta) > 1
+            % Mexeu em mais de uma alternativa: anula, mesmo que uma delas
+            % esteja muito mais preenchida que as outras. Nao cabe ao
+            % corretor adivinhar a intencao de quem rasurou.
+            respostas(i) = '*';
+        elseif numel(marcadas) == 1
             respostas(i) = LETRAS(marcadas);
+        else
+            respostas(i) = '-';      % em branco ou marcacao fraca demais
         end
     end
 
@@ -132,8 +139,8 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
         else
             situacao = 'errou';
         end
-        fprintf('  Q%d: marcou %c | gabarito %c  (%s)   [tinta max %.2f]\n', ...
-                i, respostas(i), gabarito(i), situacao, max(preenchimento(i,:)));
+        fprintf('  Q%d: marcou %c | gabarito %c  (%-9s)  A=%.2f B=%.2f C=%.2f D=%.2f\n', ...
+                i, respostas(i), gabarito(i), situacao, preenchimento(i,:));
     end
     fprintf('  Total: %d/%d acertos\n\n', acertos, NQ);
 
@@ -149,10 +156,12 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
         end
         for i = 1:NQ
             for j = 1:NA
-                if preenchimento(i,j) > LIMIAR
-                    cor = 'g';
+                if preenchimento(i,j) > LIMIAR_MARCA
+                    cor = 'g';                  % marcacao
+                elseif preenchimento(i,j) > LIMIAR_RASURA
+                    cor = [1 0.5 0];            % rasura: tinta fraca
                 else
-                    cor = 'y';
+                    cor = 'y';                  % vazia
                 end
                 text((j-0.5)*wCelula, (i-0.5)*hCelula, ...
                      sprintf('%.2f', preenchimento(i,j)), ...
@@ -160,7 +169,8 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
                      'FontWeight', 'bold', 'FontSize', 9);
             end
         end
-        title(sprintf('Grade detectada - verde = marcada (limiar %.2f)', LIMIAR));
+        title(sprintf(['Grade detectada - verde = marcada (>%.2f), ' ...
+                       'laranja = rasura (>%.2f)'], LIMIAR_MARCA, LIMIAR_RASURA));
         hold off;
     end
 end
