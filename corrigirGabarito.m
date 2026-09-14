@@ -24,6 +24,16 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
     NA = 4;              % alternativas por questao
     LETRAS = 'ABCD';
 
+    % Normaliza o gabarito UMA vez, aqui. Antes o total usava upper() mas o
+    % relatorio comparava com a string crua: chamar com 'adbcadbc' dava o
+    % total certo e listava todas as questoes como erradas.
+    gabarito = upper(char(gabarito));
+    if numel(gabarito) ~= NQ
+        error('corrigirGabarito:gabarito', ...
+              'O gabarito precisa ter %d letras (recebeu %d).', ...
+              NQ, numel(gabarito));
+    end
+
     % Dois limiares, nao um. Sao perguntas diferentes:
     LIMIAR_MARCA  = 0.40;  % "isto e uma alternativa marcada" -> define a letra
     LIMIAR_RASURA = 0.20;  % "aqui tem alguma tinta"          -> detecta rasura
@@ -126,7 +136,7 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
     end
 
     %% 6) Comparacao com o gabarito
-    acertos = sum(respostas == upper(gabarito));
+    acertos = sum(respostas == gabarito);   % ja normalizado acima
 
     fprintf('\n--- Correcao: %s ---\n', arquivo);
     for i = 1:NQ
@@ -174,3 +184,4 @@ function [acertos, respostas, preenchimento] = corrigirGabarito(arquivo, gabarit
         hold off;
     end
 end
+
