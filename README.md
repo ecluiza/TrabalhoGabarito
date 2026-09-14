@@ -98,10 +98,12 @@ Folha fotografada, 8 questões:
 
 ## Limitações conhecidas
 
-- **Alinhamento** — a grade é obtida por divisão aritmética da moldura, o que
-  pressupõe a folha alinhada. Digitalização torta desloca as células. Para
-  robustez a rotação seria necessário detectar os quadradinhos individualmente
-  com `regionprops` ou corrigir a inclinação pelos cantos da moldura.
+- **Perspectiva e rotação** — a grade é obtida por divisão aritmética do
+  *bounding box* da moldura, o que pressupõe a folha alinhada e fotografada de
+  frente. Numa foto inclinada a moldura vira um trapézio, mas o código continua
+  usando o retângulo que a envolve, e as células saem deslocadas. A correção
+  adequada seria detectar os quatro cantos da moldura e aplicar transformação
+  projetiva (`fitgeotrans` + `imwarp`) antes de dividir a grade.
 - **Margem do limiar de rasura** — células vazias chegam a 0,15 em fotografia,
   contra o limiar de 0,20. A folga é pequena; sombra forte ou papel amassado pode
   gerar anulação indevida. O valor deve ser reconferido a cada lote de imagens.
@@ -115,11 +117,10 @@ Folha fotografada, 8 questões:
 | Arquivo | Conteúdo |
 |---|---|
 | `corrigirGabarito.m` | leitor principal |
-| `gerarFolha.m` | gerador de folhas sintéticas para teste |
-| `testarLeitor.m` | bateria de testes automatizada |
 | `folha_azul_1A.png` | folha de referência, caneta azul, questão 1 = A |
 | `folha_preta_1D.png` | folha de referência, caneta preta, questão 1 = D |
 | `folha_foto.jpg` | folha impressa e fotografada |
+| `teste2.png` … `teste5.png` | folhas adicionais de teste |
 
 ## Requisitos
 
